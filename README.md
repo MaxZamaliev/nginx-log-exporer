@@ -1,7 +1,7 @@
 <h1>Build on Linux:</h1>
 
 git clone https://github.com/MaxZamaliev/nginx-log-exporter.git<br>
-cd ~/nginx-log-exporter<br>
+cd nginx-log-exporter<br>
 export GOPATH=\`pwd\`<br>
 go get github.com/hpcloud/tail<br>
 go get github.com/prometheus/client_golang/prometheus<br>
