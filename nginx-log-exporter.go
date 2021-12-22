@@ -95,16 +95,49 @@ func parse(fileName string, errorChan chan error) error {
 		})
 	prometheus.MustRegister(requestsDuration)
 
-	requestsTotal := prometheus.NewCounterVec(
+	reqCountry := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "nginx",
 			Subsystem: "requests",
-			Name:      "total",
+			Name:      "countryTotal",
 			Help:      "How many HTTP requests processed.",
 		},
-		[]string{"country", "domain", "method", "code"},
+		[]string{"country"},
 	)
-	prometheus.MustRegister(requestsTotal)
+	prometheus.MustRegister(reqCountry)
+
+	reqDomain := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "nginx",
+			Subsystem: "requests",
+			Name:      "domainTotal",
+			Help:      "How many HTTP requests processed.",
+		},
+		[]string{"domain"},
+	)
+	prometheus.MustRegister(reqDomain)
+
+	reqMethod := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "nginx",
+			Subsystem: "requests",
+			Name:      "methodTotal",
+			Help:      "How many HTTP requests processed.",
+		},
+		[]string{"method"},
+	)
+	prometheus.MustRegister(reqMethod)
+
+	reqCode := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "nginx",
+			Subsystem: "requests",
+			Name:      "codeTotal",
+			Help:      "How many HTTP requests processed.",
+		},
+		[]string{"code"},
+	)
+	prometheus.MustRegister(reqCode)
 
 	// parsing lines from log file
 	for line := range t.Lines {
@@ -120,6 +153,7 @@ func parse(fileName string, errorChan chan error) error {
 			continue
 		}
 
+		// get country
 		country := words[1]
 		country = strings.Replace(country, "(", "", -1)
 		country = strings.Replace(country, ")", "", -1)
@@ -130,6 +164,7 @@ func parse(fileName string, errorChan chan error) error {
 			country = "-"
 		}
 
+		// get domain
 		domain := words[6]
 		if m, _ := regexp.MatchString(`^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$`, domain); !m {
 			if debugParse {
@@ -138,6 +173,7 @@ func parse(fileName string, errorChan chan error) error {
 			continue
 		}
 
+		// get method
 		method := words[7]
 		if method != "GET" && method != "POST" {
 			if debugParse {
@@ -146,6 +182,7 @@ func parse(fileName string, errorChan chan error) error {
 			continue
 		}
 
+		// get code
 		code := words[10]
 		if m, _ := regexp.MatchString(`^[2345]\d\d$`, code); !m {
 			if debugParse {
@@ -154,6 +191,7 @@ func parse(fileName string, errorChan chan error) error {
 			continue
 		}
 
+		// get duration
 		duration := words[12]
 		if m, _ := regexp.MatchString(`^\d*\.\d*$`, duration); !m {
 			if debugParse {
@@ -164,7 +202,10 @@ func parse(fileName string, errorChan chan error) error {
 		fduration, _ := strconv.ParseFloat(duration, 64)
 
 		requestsDuration.Observe(fduration)
-		requestsTotal.WithLabelValues(country, domain, method, code).Inc()
+		reqCountry.WithLabelValues(country).Inc()
+		reqDomain.WithLabelValues(domain).Inc()
+		reqMethod.WithLabelValues(method).Inc()
+		reqCode.WithLabelValues(code).Inc()
 
 		if debugParse {
 			debugLog.Printf("Parsed string from log: country=%s; domain=%s; method=%s code=%s duration=%s", country, domain, method, code, duration)
